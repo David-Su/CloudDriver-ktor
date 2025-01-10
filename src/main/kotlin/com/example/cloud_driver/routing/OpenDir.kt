@@ -30,7 +30,12 @@ fun Route.openDir() {
         val paths = openDir.paths
 
         if (paths.isEmpty() || paths.firstOrNull() != Cons.Path.USER_DIR_STUB) {
-            call.respond(Response<Unit>(CodeMessage.DIR_OR_FILE_NOT_EXIST.code, CodeMessage.DIR_OR_FILE_NOT_EXIST.message))
+            call.respond(
+                Response<Unit>(
+                    CodeMessage.DIR_OR_FILE_NOT_EXIST.code,
+                    CodeMessage.DIR_OR_FILE_NOT_EXIST.message
+                )
+            )
             return@post
         }
 
@@ -40,9 +45,13 @@ fun Route.openDir() {
 
         val targetDirFile = File(targetDirPath)
 
-
         if (!targetDirFile.exists() || !targetDirFile.isDirectory) {
-            call.respond(Response<Unit>(CodeMessage.DIR_OR_FILE_NOT_EXIST.code, CodeMessage.DIR_OR_FILE_NOT_EXIST.message))
+            call.respond(
+                Response<Unit>(
+                    CodeMessage.DIR_OR_FILE_NOT_EXIST.code,
+                    CodeMessage.DIR_OR_FILE_NOT_EXIST.message
+                )
+            )
             return@post
         }
 
@@ -51,7 +60,9 @@ fun Route.openDir() {
         val children = targetDirFile.listFiles()
             ?.map {
                 DirCloudFile.DirCloudFileChild(
-                    it.name, it.isDirectory, assemblePreviewImg(it, dataDir)
+                    it.name,
+                    it.isDirectory,
+                    assemblePreviewImg(it, dataDir)
                 )
             }
 

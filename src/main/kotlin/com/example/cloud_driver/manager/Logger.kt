@@ -1,5 +1,6 @@
 package com.example.cloud_driver.manager
 
+import com.example.cloud_driver.config.Cons
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -11,7 +12,7 @@ import java.util.logging.SimpleFormatter
 val logger: Logger = Logger.getLogger("CloudDriver").also { logger ->
     logger.level = Level.ALL
 
-    val logDir = File(System.getProperty("catalina.base"), "logs")
+    val logDir = File(Cons.Path.TEMP_LOG_DIR)
 
     logger.info {
         logDir.absolutePath

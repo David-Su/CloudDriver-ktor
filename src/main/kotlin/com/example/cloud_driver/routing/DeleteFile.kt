@@ -17,7 +17,7 @@ import java.io.File
 @Serializable
 data class DeleteFile(val paths: List<String> = listOf())
 
-fun Route.DeleteFile() {
+fun Route.deleteFile() {
     post("/deletefile") {
         val location = CloudFileUtil.getWholePath(
             call.receive<DeleteFile>().paths,

@@ -10,12 +10,11 @@ import io.ktor.server.plugins.autohead.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.plugins.partialcontent.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
-import org.slf4j.event.Level
+import kotlin.time.Duration.Companion.seconds
 
 fun main(args: Array<String>) {
     io.ktor.server.tomcat.jakarta.EngineMain.main(args)
@@ -37,7 +36,12 @@ fun Application.module() {
         this.allowHeaders { true }
         this.allowSameOrigin = true
     }
-    install(WebSockets)
+    install(WebSockets) {
+        pingPeriod = 15.seconds
+        timeout = 15.seconds
+        maxFrameSize = Long.MAX_VALUE
+        masking = false
+    }
 
     intercept(ApplicationCallPipeline.Call) {
         if (call.request.path().endsWith("/uploadtasks")) {

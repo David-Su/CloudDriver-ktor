@@ -24,11 +24,16 @@ repositories {
     mavenCentral()
 }
 
+ktor {
+    fatJar {
+        archiveFileName.set("CloudDriver-ktor.jar")
+    }
+}
+
 dependencies {
     implementation(files(file("libs").listFiles()))
 
     implementation("com.google.code.gson:gson:2.9.0")
-    implementation("com.squareup.okhttp:okhttp:2.7.5")
     implementation("net.lingala.zip4j:zip4j:2.11.5")
     implementation("com.auth0:java-jwt:3.19.2")
     implementation("org.bytedeco:javacv:1.5.10")

@@ -7,6 +7,7 @@ import com.example.cloud_driver.util.TokenUtil
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
@@ -31,6 +32,8 @@ fun Route.websocketUploadTasks() {
 
     webSocket("/websocket/uploadtasks") {
 
+        logger.info { "enter ws" }
+
         val token = call.request.queryParameters["token"]
 
         if (token.isNullOrEmpty() || !TokenUtil.valid(token)) {
@@ -43,37 +46,53 @@ fun Route.websocketUploadTasks() {
 
         val channel = Channel<String>()
 
-
         UploadTaskManager.addListener(username, object : UploadTaskManager.Listener {
             override fun onTasksUpdate(tasks: List<UploadTask>) {
-                this@webSocket.launch {
+                this@webSocket.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
+                    throwable.printStackTrace()
+                    logger.info { "onTasksUpdate error:${throwable}" }
+                }) {
                     val text = Send(
                         DATA_TYPE_UPDATE,
                         tasks,
                     ).let {
                         Json.encodeToString(it)
                     }
+                    logger.info { "send text:${text}" }
                     channel.send(text)
                 }
             }
 
             override fun onTaskRemove(path: String) {
-                this@webSocket.launch {
+                this@webSocket.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
+                    throwable.printStackTrace()
+                    logger.info { "onTaskRemove error:${throwable}" }
+                }) {
                     val text = Send(
                         DATA_TYPE_REMOVE,
                         path,
                     ).let {
                         Json.encodeToString(it)
                     }
+                    logger.info { "send text:${text}" }
                     channel.send(text)
                 }
             }
 
         })
 
-        while (this.coroutineContext.isActive) {
-            val channelElement = channel.receive()
-            this.send(Frame.Text(channelElement))
+        logger.info { "context isActive1:${coroutineContext.isActive}" }
+
+        while (coroutineContext.isActive) {
+            logger.info { "loop:" }
+            runCatching {
+                val channelElement = channel.receive()
+                this.send(Frame.Text(channelElement))
+            }.onFailure {
+                logger.info { "onFailure:${it}" }
+            }
         }
+
+        logger.info { "context isActive3:${coroutineContext.isActive}" }
     }
 }

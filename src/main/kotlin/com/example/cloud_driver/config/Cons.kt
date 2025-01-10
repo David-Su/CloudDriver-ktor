@@ -33,6 +33,7 @@ class Cons {
         val DATA_DIR = FileUtil.getWholePath(ROOT_DIR, "data")
         val TEMP_UPLOAD_DIR = FileUtil.getWholePath(TEMP_DIR, "upload")
         val TEMP_PREVIEW_DIR = FileUtil.getWholePath(TEMP_DIR, "preview")
+        val TEMP_LOG_DIR = FileUtil.getWholePath(TEMP_DIR, "log")
         const val USER_DIR_STUB = "." //用户目录占位符
 
         init {
