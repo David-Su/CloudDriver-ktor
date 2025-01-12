@@ -13,8 +13,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.jvm.javaio.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.math.RoundingMode
 import java.nio.file.Files
@@ -31,12 +29,13 @@ fun Route.uploadFile() {
         val part = multipartData.readPart() as PartData.FileItem
         val provider = part.provider()
         val fileName = part.originalFileName as String
-        val tempFile = File(FileUtil.getWholePath(tempDir, fileName))
+        val tempFile = File(FileUtil.getWholePath(tempDir, fileName)).also {
+            it.parentFile?.also { if (!it.exists()) it.mkdirs() }
+        }
         val input = provider.toInputStream()
         val output = tempFile.outputStream()
         val contentLength = call.request.contentLength()!!
         val bufferSize = DEFAULT_BUFFER_SIZE
-        val isVideo = part.contentType?.contentType == MediaType.ANY_VIDEO_TYPE.type()
         //更新进度的最小间隔
         val updateTaskSpan = 500L
         val realFile = File(FileUtil.getWholePath(realDir, fileName))
@@ -54,13 +53,11 @@ fun Route.uploadFile() {
 
             while (true) {
 
-                val bytes = withContext(Dispatchers.IO) {
-                    val bytes = input.read(buffer)
-                    if (bytes >= 0) output.write(buffer, 0, bytes)
-                    bytes
-                }
+                val bytes = input.read(buffer)
 
                 if (bytes < 0) break
+
+                output.write(buffer, 0, bytes)
 
                 bytesCopied += bytes
 
@@ -114,22 +111,34 @@ fun Route.uploadFile() {
 
             Files.move(tempFile.toPath(), realFile.toPath())
 
-            if (isVideo) { //生成预览图
-                val imagePath = FileUtil.getWholePath(
-                    Cons.Path.TEMP_PREVIEW_DIR,
-                    path,
-                    "${fileName}.temp" + ".png"
-                )
-                val compressImagePath = FileUtil.getWholePath(Cons.Path.TEMP_PREVIEW_DIR, path, "$fileName.jpg")
-                withContext(Dispatchers.IO) {
-                    FFmpegUtil.extraMiddleFrameImg(realFile.absolutePath, imagePath)
-                    ImageCompressUtil.previewCompress(imagePath, compressImagePath)
-                    logger.info {
-                        "compress image before->after: ${File(imagePath).length()}->${File(compressImagePath).length()}"
-                    }
-                    FileUtil.deleteFile(File(imagePath))
+            val tempImagePath = FileUtil.getWholePath(
+                Cons.Path.TEMP_PREVIEW_DIR,
+                path,
+                "${fileName}.temp" + ".png"
+            )
+            val tempImageFile = File(tempImagePath)
+            val compressImagePath = FileUtil.getWholePath(Cons.Path.TEMP_PREVIEW_DIR, path, "$fileName.jpg")
+
+            if (tempImageFile.exists() && tempImageFile.isFile) {
+                tempImageFile.delete()
+            } else if (!tempImageFile.parentFile.exists()) {
+                tempImageFile.parentFile.mkdirs()
+            }
+
+            when (part.contentType?.contentType) {
+                MediaType.ANY_VIDEO_TYPE.type() -> {
+                    FFmpegUtil.extraMiddleFrameImg(realFile.absolutePath, tempImagePath)
+                }
+                MediaType.ANY_IMAGE_TYPE.type() -> {
+                    realFile.copyTo(tempImageFile)
                 }
             }
+
+            ImageCompressUtil.previewCompress(tempImagePath, compressImagePath)
+            logger.info {
+                "compress image before->after: ${File(tempImagePath).length()}->${File(compressImagePath).length()}"
+            }
+            FileUtil.deleteFile(File(tempImagePath))
         }.onFailure {
             it.printStackTrace()
         }

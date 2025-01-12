@@ -36,12 +36,6 @@ fun Route.websocketUploadTasks() {
 
         val token = call.request.queryParameters["token"]
 
-        if (token.isNullOrEmpty() || !TokenUtil.valid(token)) {
-            logger.info { "Token is invalid token: $token" }
-            cancel()
-            return@webSocket
-        }
-
         val username = TokenUtil.getUsername(token)
 
         val channel = Channel<String>()
@@ -84,13 +78,8 @@ fun Route.websocketUploadTasks() {
         logger.info { "context isActive1:${coroutineContext.isActive}" }
 
         while (coroutineContext.isActive) {
-            logger.info { "loop:" }
-            runCatching {
-                val channelElement = channel.receive()
-                this.send(Frame.Text(channelElement))
-            }.onFailure {
-                logger.info { "onFailure:${it}" }
-            }
+            val channelElement = channel.receive()
+            this.send(Frame.Text(channelElement))
         }
 
         logger.info { "context isActive3:${coroutineContext.isActive}" }

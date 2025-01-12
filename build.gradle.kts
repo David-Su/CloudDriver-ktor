@@ -26,7 +26,7 @@ repositories {
 
 ktor {
     fatJar {
-        archiveFileName.set("CloudDriver-ktor.jar")
+        archiveFileName.set("CloudDriver.jar")
     }
 }
 
@@ -68,7 +68,7 @@ dependencies {
 
 gretty {
     servletContainer = "tomcat10"
-    contextPath = "/CloudDriver-ktor"
+    contextPath = "/CloudDriver"
     logbackConfigFile = "src/main/resources/logback.xml"
 }
 
