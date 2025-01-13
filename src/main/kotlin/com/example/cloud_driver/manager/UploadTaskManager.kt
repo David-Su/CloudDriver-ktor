@@ -12,6 +12,7 @@ object UploadTaskManager {
 
     private val tasksMap = hashMapOf<String, ArrayList<UploadTask>>()
     private val listenerMap = hashMapOf<String, ArrayList<Listener>>()
+    private val channelMap = hashMapOf<String, ArrayList<Listener>>()
 
     fun getCurrentTasks(username: String): List<UploadTask>? = tasksMap[username]
 
@@ -42,8 +43,6 @@ object UploadTaskManager {
         val tasks = tasksMap[username] ?: return@synchronized
 
         listenerMap[username]?.forEach { it.onTasksUpdate(tasks) }
-
-//        logger.info("onTasksUpdate->${tasks.map { it.toString() }}  ${System.identityHashCode(tasks)}")
     }
 
     fun removeTask(username: String, uploadTask: UploadTask? = null): Unit = synchronized(username.intern()) {

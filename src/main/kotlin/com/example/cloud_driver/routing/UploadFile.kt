@@ -1,6 +1,7 @@
 package com.example.cloud_driver.routing
 
 import com.example.cloud_driver.config.Cons
+import com.example.cloud_driver.manager.CompressPreviewManager
 import com.example.cloud_driver.manager.UploadTaskManager
 import com.example.cloud_driver.manager.logger
 import com.example.cloud_driver.model.net.CodeMessage
@@ -12,7 +13,10 @@ import io.ktor.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.*
+import io.ktor.utils.io.core.*
 import io.ktor.utils.io.jvm.javaio.*
+import kotlinx.io.readByteArray
 import java.io.File
 import java.math.RoundingMode
 import java.nio.file.Files
@@ -32,7 +36,6 @@ fun Route.uploadFile() {
         val tempFile = File(FileUtil.getWholePath(tempDir, fileName)).also {
             it.parentFile?.also { if (!it.exists()) it.mkdirs() }
         }
-        val input = provider.toInputStream()
         val output = tempFile.outputStream()
         val contentLength = call.request.contentLength()!!
         val bufferSize = DEFAULT_BUFFER_SIZE
@@ -42,24 +45,22 @@ fun Route.uploadFile() {
         val currentUploadTask = UploadTask(FileUtil.getWholePath(clientPath, fileName), 0.0, 0)
         //上次用来计算上传速度的时间
         var lastCalcSpeedTime: Long? = null
+        //读取的文件总大小
+        var lastRead = 0L
+        var bytesCopied: Long = 0
 
         UploadTaskManager.addTask(username, currentUploadTask)
 
         //将上传的数据写入文件缓存
         runCatching {
-            var lastRead = 0L //读取的文件总大小
-            var bytesCopied: Long = 0
-            val buffer = ByteArray(bufferSize)
 
-            while (true) {
+            while (!provider.isClosedForRead) {
 
-                val bytes = input.read(buffer)
-
-                if (bytes < 0) break
-
-                output.write(buffer, 0, bytes)
-
-                bytesCopied += bytes
+                val source = provider.readRemaining(bufferSize.toLong())
+                if (source.exhausted()) break
+                val bytes = source.readByteArray()
+                output.write(bytes)
+                bytesCopied += bytes.size
 
                 val localLastCalcSpeedTime = lastCalcSpeedTime
                 val speed: Long
@@ -71,7 +72,6 @@ fun Route.uploadFile() {
                     speed = 0
                     progress = 0.0
                 } else {
-
                     speed = System.currentTimeMillis()
                         .takeIf { it > localLastCalcSpeedTime && it - localLastCalcSpeedTime > updateTaskSpan }
                         ?.let { (bytesCopied - lastRead) / (it - localLastCalcSpeedTime) * 1000 }
@@ -99,7 +99,6 @@ fun Route.uploadFile() {
 
             }
 
-
             //将文件缓存移动到用户文件夹
             if (!realFile.exists()) {
                 if (!realFile.parentFile.exists()) {
@@ -111,38 +110,11 @@ fun Route.uploadFile() {
 
             Files.move(tempFile.toPath(), realFile.toPath())
 
-            val tempImagePath = FileUtil.getWholePath(
-                Cons.Path.TEMP_PREVIEW_DIR,
-                path,
-                "${fileName}.temp" + ".png"
-            )
-            val tempImageFile = File(tempImagePath)
-            val compressImagePath = FileUtil.getWholePath(Cons.Path.TEMP_PREVIEW_DIR, path, "$fileName.jpg")
-
-            if (tempImageFile.exists() && tempImageFile.isFile) {
-                tempImageFile.delete()
-            } else if (!tempImageFile.parentFile.exists()) {
-                tempImageFile.parentFile.mkdirs()
-            }
-
-            when (part.contentType?.contentType) {
-                MediaType.ANY_VIDEO_TYPE.type() -> {
-                    FFmpegUtil.extraMiddleFrameImg(realFile.absolutePath, tempImagePath)
-                }
-                MediaType.ANY_IMAGE_TYPE.type() -> {
-                    realFile.copyTo(tempImageFile)
-                }
-            }
-
-            ImageCompressUtil.previewCompress(tempImagePath, compressImagePath)
-            logger.info {
-                "compress image before->after: ${File(tempImagePath).length()}->${File(compressImagePath).length()}"
-            }
-            FileUtil.deleteFile(File(tempImagePath))
+            CompressPreviewManager.compressPreView(realFile,overwrite = true)
         }.onFailure {
             it.printStackTrace()
         }
-        runCatching { input.close() }
+        runCatching { provider.cancel() }
         runCatching { output.close() }
         runCatching { tempFile.delete() }
 

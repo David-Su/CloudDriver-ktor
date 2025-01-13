@@ -12,6 +12,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.whileSelect
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -75,13 +76,16 @@ fun Route.websocketUploadTasks() {
 
         })
 
-        logger.info { "context isActive1:${coroutineContext.isActive}" }
-
         while (coroutineContext.isActive) {
-            val channelElement = channel.receive()
-            this.send(Frame.Text(channelElement))
+            runCatching {
+                val channelElement = channel.receive()
+                this.send(Frame.Text(channelElement))
+            }.onFailure {
+                it.printStackTrace()
+                logger.info { "Channel receive error: $it" }
+            }
         }
 
-        logger.info { "context isActive3:${coroutineContext.isActive}" }
+        UploadTaskManager.removeTask(username)
     }
 }
