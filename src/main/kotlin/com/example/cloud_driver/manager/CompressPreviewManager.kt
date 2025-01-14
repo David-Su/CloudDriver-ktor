@@ -77,7 +77,7 @@ object CompressPreviewManager {
             throwable.printStackTrace()
             logger.info { "压缩图片-压缩图片异常:${file.name}  ${throwable}" }
         }) {
-            logger.info { "压缩图片-压缩图片-进入协程:${file.name}  " }
+            logger.info { "压缩图片-压缩图片-进入协程:${file.name}" }
             ImageCompressUtil.previewCompress(tempImagePath, compressImagePath)
         }
 
