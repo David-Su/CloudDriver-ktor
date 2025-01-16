@@ -6,6 +6,8 @@ import com.example.cloud_driver.model.net.CodeMessage
 import com.example.cloud_driver.model.net.Response
 import com.example.cloud_driver.util.CloudFileUtil
 import com.example.cloud_driver.util.FileUtil
+import com.example.cloud_driver.util.TokenUtil
+import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -17,13 +19,11 @@ data class CreateDir(val paths: List<String> = listOf())
 
 fun Route.createDir() {
 
-    post("/createdir") {
-
-        val createDir = call.receive<CreateDir>()
+    post<CreateDir>("/createdir") { createDir ->
 
         val paths = CloudFileUtil.getWholePath(
             createDir.paths,
-            call.queryParameters["token"]!!
+            TokenUtil.getUsername(call.queryParameters["token"]!!)
         )
 
         val path = FileUtil.getWholePath(Cons.Path.DATA_DIR, paths)

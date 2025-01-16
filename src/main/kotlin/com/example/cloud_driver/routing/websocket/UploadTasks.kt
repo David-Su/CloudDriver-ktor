@@ -39,14 +39,11 @@ fun Route.websocketUploadTasks() {
 
         val username = TokenUtil.getUsername(token)
 
-        val channel = Channel<String>()
+        val channel = Channel<String>(capacity = Channel.UNLIMITED)
 
         UploadTaskManager.addListener(username, object : UploadTaskManager.Listener {
             override fun onTasksUpdate(tasks: List<UploadTask>) {
-                this@webSocket.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
-                    throwable.printStackTrace()
-                    logger.info { "onTasksUpdate error:${throwable}" }
-                }) {
+                runCatching {
                     val text = Send(
                         DATA_TYPE_UPDATE,
                         tasks,
@@ -54,15 +51,15 @@ fun Route.websocketUploadTasks() {
                         Json.encodeToString(it)
                     }
                     logger.info { "send text:${text}" }
-                    channel.send(text)
+                    channel.trySend(text)
+                }.onFailure {
+                    it.printStackTrace()
+                    logger.info { "onTasksUpdate error: $it" }
                 }
             }
 
             override fun onTaskRemove(path: String) {
-                this@webSocket.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
-                    throwable.printStackTrace()
-                    logger.info { "onTaskRemove error:${throwable}" }
-                }) {
+                runCatching {
                     val text = Send(
                         DATA_TYPE_REMOVE,
                         path,
@@ -70,7 +67,10 @@ fun Route.websocketUploadTasks() {
                         Json.encodeToString(it)
                     }
                     logger.info { "send text:${text}" }
-                    channel.send(text)
+                    channel.trySend(text)
+                }.onFailure {
+                    it.printStackTrace()
+                    logger.info { "onTaskRemove error: $it" }
                 }
             }
 
@@ -87,5 +87,6 @@ fun Route.websocketUploadTasks() {
         }
 
         UploadTaskManager.removeTask(username)
+        channel.close()
     }
 }

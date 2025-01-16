@@ -2,14 +2,10 @@ package com.example.cloud_driver
 
 import com.example.cloud_driver.config.Cons
 import com.example.cloud_driver.manager.CompressPreviewManager
-import com.example.cloud_driver.manager.UploadTaskManager
 import com.example.cloud_driver.manager.logger
 import com.example.cloud_driver.model.net.CodeMessage
 import com.example.cloud_driver.model.net.Response
 import com.example.cloud_driver.routing.configureRouting
-import com.example.cloud_driver.util.FFmpegUtil
-import com.example.cloud_driver.util.FileUtil
-import com.example.cloud_driver.util.ImageCompressUtil
 import com.example.cloud_driver.util.TokenUtil
 import com.google.common.net.MediaType
 import io.ktor.serialization.kotlinx.json.*
@@ -19,18 +15,15 @@ import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.request.*
+import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.file.Files
 import kotlin.io.path.Path
-import kotlin.time.Duration.Companion.seconds
 
 fun main(args: Array<String>) {
     io.ktor.server.tomcat.jakarta.EngineMain.main(args)
@@ -40,6 +33,7 @@ fun Application.module() {
     runBlocking {
         init()
     }
+    install(Resources)
     install(ContentNegotiation) {
         json()
     }
@@ -51,16 +45,11 @@ fun Application.module() {
         anyMethod()
         allowCredentials = true
         allowNonSimpleContentTypes = true
+        allowSameOrigin = true
         allowOrigins { true }
-        this.allowHeaders { true }
-        this.allowSameOrigin = true
+        allowHeaders { true }
     }
-    install(WebSockets) {
-        pingPeriod = 15.seconds
-        timeout = 15.seconds
-        maxFrameSize = Long.MAX_VALUE
-        masking = false
-    }
+    install(WebSockets)
 
     intercept(ApplicationCallPipeline.Call) {
         if (call.request.path().endsWith("/uploadtasks")) {
