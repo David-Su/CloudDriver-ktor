@@ -41,7 +41,7 @@ fun Route.websocketUploadTasks() {
 
         val channel = Channel<String>(capacity = Channel.UNLIMITED)
 
-        UploadTaskManager.addListener(username, object : UploadTaskManager.Listener {
+        val taskListener = object : UploadTaskManager.Listener {
             override fun onTasksUpdate(tasks: List<UploadTask>) {
                 runCatching {
                     val text = Send(
@@ -74,7 +74,9 @@ fun Route.websocketUploadTasks() {
                 }
             }
 
-        })
+        }
+
+        UploadTaskManager.addListener(username, taskListener)
 
         while (coroutineContext.isActive) {
             runCatching {
@@ -86,7 +88,7 @@ fun Route.websocketUploadTasks() {
             }
         }
 
-        UploadTaskManager.removeTask(username)
+        UploadTaskManager.removeListener(username, taskListener)
         channel.close()
     }
 }
