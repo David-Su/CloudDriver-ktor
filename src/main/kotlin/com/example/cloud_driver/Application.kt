@@ -6,6 +6,7 @@ import com.example.cloud_driver.manager.logger
 import com.example.cloud_driver.model.net.CodeMessage
 import com.example.cloud_driver.model.net.Response
 import com.example.cloud_driver.routing.configureRouting
+import com.example.cloud_driver.util.FileUtil
 import com.example.cloud_driver.util.TokenUtil
 import com.google.common.net.MediaType
 import io.ktor.serialization.kotlinx.json.*
@@ -87,7 +88,7 @@ private suspend fun init() {
         .asFlow()
         .filter { it.isFile }
         .filter {
-            Files.probeContentType(Path(it.absolutePath))
+            FileUtil.getFileMimeType(it)
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { MediaType.parse(it) }
                 ?.let { it.`is`(MediaType.ANY_VIDEO_TYPE) or it.`is`(MediaType.ANY_IMAGE_TYPE) }

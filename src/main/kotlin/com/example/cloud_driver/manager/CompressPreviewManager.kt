@@ -9,15 +9,14 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.nio.file.Files
-import kotlin.io.path.Path
 
 object CompressPreviewManager {
     suspend fun compressPreView(file: File, overwrite: Boolean = false) {
         val taskStartTime = System.currentTimeMillis()
 
-        val mimeType = Files.probeContentType(Path(file.absolutePath))
-            .let { MediaType.parse(it) }
+        val mimeType = FileUtil.getFileMimeType(file)
+            ?.let { MediaType.parse(it) }
+            ?:return
 
         //小于100KB的图片不用压缩了
         if (mimeType.`is`(MediaType.ANY_IMAGE_TYPE) && file.length() <= 100 * 1000) {
@@ -59,7 +58,7 @@ object CompressPreviewManager {
             }
 
             mimeType.`is`(MediaType.ANY_IMAGE_TYPE) -> {
-                file.copyTo(tempImageFile)
+                file.copyTo(tempImageFile, overwrite = true)
             }
 
             else -> {

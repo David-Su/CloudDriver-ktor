@@ -1,5 +1,6 @@
 package com.example.cloud_driver.util
 
+import org.apache.tika.Tika
 import java.io.File
 
 object FileUtil {
@@ -46,5 +47,11 @@ object FileUtil {
         }
 
         return path
+    }
+
+    fun getFileMimeType(file: File):String?{
+        if (!file.isFile || !file.exists()) return null
+        val tika = Tika()
+        return tika.detect(file)
     }
 }

@@ -5,7 +5,7 @@ val ktor_version: String by project
 plugins {
     kotlin("jvm") version "2.1.0"
     kotlin("plugin.serialization") version "2.1.0"
-    id("io.ktor.plugin") version "3.1.1"
+    id("io.ktor.plugin") version "3.1.2"
     id("org.gretty") version "4.0.3"
     id("war")
 }
@@ -67,11 +67,11 @@ dependencies {
     implementation("org.mybatis:mybatis:3.5.15")
     implementation("mysql:mysql-connector-java:8.0.33")
     implementation("net.coobird:thumbnailator:0.4.20")
+    implementation("org.apache.tika:tika-core:3.1.0")
 }
 
 gretty {
     servletContainer = "tomcat10"
-    contextPath = "/CloudDriver"
     logbackConfigFile = "src/main/resources/logback.xml"
 }
 

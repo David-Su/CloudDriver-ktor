@@ -19,16 +19,7 @@ class Cons {
 
     object Path {
         //顶层文件夹
-        private val TOP_DIR = System.getProperty("os.name")
-            ?.let { os ->
-                when {
-                    os.contains("Linux") -> File("${File.separator}mnt${File.separator}sdb")
-                        .takeIf { it.exists() }
-                        ?.absolutePath
-
-                    else -> null
-                }
-            } ?: System.getProperty("user.home")
+        private val TOP_DIR = System.getProperty("user.home")
         private val ROOT_DIR = FileUtil.getWholePath(TOP_DIR, "CloudDriver")
 
         private val TEMP_DIR = FileUtil.getWholePath(ROOT_DIR, "temp")
